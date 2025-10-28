@@ -139,3 +139,40 @@ func (m *promMetrics) Observer(name metrics.MetricName, labels metrics.Labels) m
 	labels["host"] = m.host
 	return v.With(prometheus.Labels(labels))
 }
+
+// DeleteServiceMetrics removes all metric time series for the given service label
+// across counters, gauges, and histograms that include the "service" label.
+// This helps clean up metrics when a service is deleted.
+func DeleteServiceMetrics(service string) {
+    if service == "" {
+        return
+    }
+    pm, ok := defaultMetrics.(*promMetrics)
+    if !ok {
+        return
+    }
+
+    // Delete in-flight gauge series: labels {host, service, client}
+    if gv, ok := pm.gauges[MetricServiceRequestsInFlightGauge]; ok {
+        gv.DeletePartialMatch(prometheus.Labels{"service": service})
+    }
+
+    // Delete counters with service label
+    if cv, ok := pm.counters[MetricServiceRequestsCounter]; ok {
+        cv.DeletePartialMatch(prometheus.Labels{"service": service})
+    }
+    if cv, ok := pm.counters[MetricServiceTransferInputBytesCounter]; ok {
+        cv.DeletePartialMatch(prometheus.Labels{"service": service})
+    }
+    if cv, ok := pm.counters[MetricServiceTransferOutputBytesCounter]; ok {
+        cv.DeletePartialMatch(prometheus.Labels{"service": service})
+    }
+    if cv, ok := pm.counters[MetricServiceHandlerErrorsCounter]; ok {
+        cv.DeletePartialMatch(prometheus.Labels{"service": service})
+    }
+
+    // Delete histograms with service label
+    if hv, ok := pm.histograms[MetricServiceRequestsDurationObserver]; ok {
+        hv.DeletePartialMatch(prometheus.Labels{"service": service})
+    }
+}

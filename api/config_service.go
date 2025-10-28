@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-gost/x/config"
 	parser "github.com/go-gost/x/config/parsing/service"
+    xmetrics "github.com/go-gost/x/metrics"
 	"github.com/go-gost/x/registry"
 )
 
@@ -269,6 +270,9 @@ func deleteService(ctx *gin.Context) {
 
 	registry.ServiceRegistry().Unregister(name)
 	svc.Close()
+
+    // cleanup metrics for this service
+    xmetrics.DeleteServiceMetrics(name)
 
 	config.OnUpdate(func(c *config.Config) error {
 		services := c.Services
